@@ -1,0 +1,53 @@
+version: '3.9'
+services:
+    nginx:
+        container_name: mobie_app_config_nginx
+        working_dir: /app
+        image: 'nginx:latest'
+        ports:
+            - '80:80'
+            - '443:443'
+        volumes:
+            - ./:/var/www/app
+            - ./docker/nginx/conf.d:/etc/nginx/conf.d
+            - ./docker/nginx/conf.d/cert:/etc/nginx/conf.d/cert
+        depends_on:
+            - php
+        links:
+            - php
+    php:
+        container_name: mobie_app_config_php
+        working_dir: /var/www/app
+        build: ./docker/php
+        volumes:
+            - ./:/var/www/app
+
+        environment:
+            PHP_IDE_CONFIG: "serverName=app.service.loc"
+            XDEBUG_CONFIG: "remote_host=host.docker.internal remote_enable=1"
+            APP_ENV: "dev"
+
+    postgres:
+        image: postgres:latest
+        container_name:  mobie_app_config_postgres
+        working_dir: /app
+        volumes:
+            - db-data:/var/lib/postgresql/data:rw
+        environment:
+            - POSTGRES_USER=root
+            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_DB=app
+        ports:
+            - "5432:5432"
+
+    composer:
+        image: composer:latest
+        working_dir: /var/www/app
+        command: update -W --ignore-platform-reqs
+        volumes:
+            - ./:/var/www/app
+        depends_on:
+            - php
+
+volumes:
+  db-data:
